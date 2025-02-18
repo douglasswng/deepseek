@@ -64,7 +64,7 @@ class MLA(nn.Module):
     def attention(self, q: torch.Tensor, k: torch.Tensor, v: torch.Tensor, pad_mask: torch.Tensor | None) -> torch.Tensor:
         scores = torch.einsum('bshd, bthd -> bhst', q, k)
         scores = scores / math.sqrt(q.size(-1))
-        causal_mask = torch.tril(torch.ones(scores.size(-2), scores.size(-1))).bool()
+        causal_mask = torch.tril(torch.ones(scores.size(-2), scores.size(-1))).bool().to(q.device)
         scores = scores.masked_fill(~causal_mask.unsqueeze(0).unsqueeze(0), float('-inf'))
         if pad_mask is not None:
             scores = scores.masked_fill(~pad_mask.unsqueeze(1).unsqueeze(1), float('-inf'))
