@@ -1,0 +1,6 @@
+.env
+*.ipynb
+artifacts/deepseek-v3
+__pycache__
+wandb
+__MACOSX__

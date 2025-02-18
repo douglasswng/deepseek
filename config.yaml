@@ -1,0 +1,18 @@
+raw_data_dir: ./data/raw
+tokeniser_dir: ./artifacts/tokeniser
+processed_data_dir: ./data/processed
+deepseek_v3_ckpt_dir: ./artifcats/deepseek-v3
+
+tokeniser_training:
+  vocab_size: 10000
+  min_frequency: 2 # min num occurences to be added to vocab
+  chunk_size: 100000 # read size when training
+
+model_training:
+  max_len: 1024 # max number of tokens
+  batch_size: 2
+  num_epochs: 100
+  mtp_weight: 0.2 # weight of the MTP loss
+  learning_rate: 0.001
+  weight_decay: 0.00001
+  min_learning_rate: 0.0001
