@@ -1,7 +1,7 @@
 from functools import partial
 import torch
 from torch.utils.data import DataLoader, random_split
-from data.dataset import TextDataset
+from .dataset import TextDataset
 from tokeniser.bbpe import BBPE
 
 def collate_fn(batch: list[list[str]], tokeniser: BBPE) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:

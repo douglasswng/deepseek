@@ -10,11 +10,11 @@ import torch
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import CosineAnnealingLR
 import torch.nn.functional as F
-from data.dataset import TextDataset
-from data.dataloader import create_dataloaders
+from .data.dataset import TextDataset
+from .data.dataloader import create_dataloaders
 from tokeniser.bbpe import BBPE
-from model.transformer import Transformer
-from model.args import ModelArgs
+from .model.transformer import Transformer
+from .model.args import ModelArgs
 
 def set_random_seed(seed=42):
     os.environ['PYTHONHASHSEED'] = str(seed)
