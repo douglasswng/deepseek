@@ -21,6 +21,10 @@ class RoPE(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         seq_len = x.size(1)
         cache = self.cache[:seq_len]
+
+        if cache.device != x.device:
+            cache = cache.to(x.device)
+
         x = x.reshape(*x.shape[:-1], -1, 2)
         cache = cache.view(-1, x.size(1), 1, x.size(3), 2)
         x = torch.stack(
