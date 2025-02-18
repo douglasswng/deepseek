@@ -132,6 +132,7 @@ def main():
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model.to(device)
+    print(f"Model parameters: {sum(p.numel() for p in model.parameters()) / 1e6:.2f}M\n")
 
     optimiser = AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
 
