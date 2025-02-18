@@ -4,15 +4,14 @@ from torch.utils.data import DataLoader, random_split
 from .dataset import TextDataset
 from tokeniser.bbpe import BBPE
 
-def collate_fn(batch: list[list[str]], tokeniser: BBPE) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+def collate_fn(batch: list[list[str]], tokeniser: BBPE) -> tuple[torch.Tensor, torch.Tensor]:
     max_len = max(len(seq) for seq in batch)
     padded_batch = [tokeniser.convert_tokens_to_ids(seq, max_len=max_len) for seq in batch]
     padded_batch = torch.tensor(padded_batch, dtype=torch.long)
     
     input = padded_batch[:, :-1]
-    pad_mask = (input != tokeniser.vocab[tokeniser.pad_token])
     label = padded_batch[:, 1:]
-    return input, pad_mask, label
+    return input, label
 
 def create_dataloaders(dataset: TextDataset, tokeniser: BBPE, batch_size: int, train_ratio: float=0.8) -> tuple[DataLoader, DataLoader]:
     dataset_size = len(dataset)
@@ -45,5 +44,4 @@ if __name__ == '__main__':
 
     for input, pad_mask, label in val_loader:
         print(input.shape)
-        print(pad_mask.shape)
         print(label.shape)

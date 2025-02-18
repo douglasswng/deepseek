@@ -23,8 +23,8 @@ class Block(nn.Module):
         self.attn_norm = RMSNorm(args.hidden_dim)
         self.moe_norm = RMSNorm(args.hidden_dim)
 
-    def forward(self, x: torch.Tensor, pad_mask: torch.Tensor) -> torch.Tensor:
-        x = x + self.attn(self.attn_norm(x), pad_mask)
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = x + self.attn(self.attn_norm(x))
         x = x + self.moe(self.moe_norm(x))
         return x
     
@@ -38,11 +38,11 @@ class MTP(nn.Module):
         self.linear = nn.Linear(2 * self.hidden_dim, self.hidden_dim)
         self.block = Block(args)
 
-    def forward(self, h: torch.Tensor, x: torch.Tensor, pad_mask: torch.Tensor) -> torch.Tensor:
+    def forward(self, h: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
         x = self.norm(x)
         x = torch.concat([h, x], dim=-1)
         x = self.linear(x)
-        x = self.block(x, pad_mask)
+        x = self.block(x)
         return x
     
 class Transformer(nn.Module):
@@ -59,14 +59,14 @@ class Transformer(nn.Module):
 
         self.mtp = MTP(args)
         
-    def forward(self, x: torch.Tensor, pad_mask: torch.Tensor) -> torch.Tensor | tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, x: torch.Tensor) -> torch.Tensor | tuple[torch.Tensor, torch.Tensor]:
         x = self.embed(x)
         embed = x.clone()
         for block in self.blocks:
-            x = block(x, pad_mask)
+            x = block(x)
         x = self.norm(x)
         if self.training:
-            x_mtp = self.mtp(x[:, :-1], embed[:, 1:], pad_mask[:, 1:])
+            x_mtp = self.mtp(x[:, :-1], embed[:, 1:])
             x = self.unembed(x)
             x_mtp = self.unembed(self.norm(x_mtp))
             return x, x_mtp
@@ -89,12 +89,9 @@ if __name__ == '__main__':
     batch_size = 3
     seq_len = 10
     input_ids = torch.randint(1, args.vocab_size, (batch_size, seq_len))
-    pad_mask = torch.ones_like(input_ids, dtype=torch.bool)  # Assuming no padding for simplicity
-    pad_mask[0, -2:] = False
-    pad_mask[1, -1:] = False
 
     # Forward pass
-    output, output_mtp = model(input_ids, pad_mask)
+    output, output_mtp = model(input_ids)
     print(output)
     print(f"Model output shape: {output.shape}")
     print(f"Model output mtp shape: {output_mtp.shape}")

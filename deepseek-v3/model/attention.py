@@ -61,20 +61,16 @@ class MLA(nn.Module):
 
         self.W_O = nn.Linear(self.hidden_dim, self.hidden_dim, bias=False)
 
-    def attention(self, q: torch.Tensor, k: torch.Tensor, v: torch.Tensor, pad_mask: torch.Tensor | None) -> torch.Tensor:
+    def attention(self, q: torch.Tensor, k: torch.Tensor, v: torch.Tensor) -> torch.Tensor:
         scores = torch.einsum('bshd, bthd -> bhst', q, k)
         scores = scores / math.sqrt(q.size(-1))
         causal_mask = torch.tril(torch.ones(scores.size(-2), scores.size(-1))).bool().to(q.device)
         scores = scores.masked_fill(~causal_mask.unsqueeze(0).unsqueeze(0), float('-inf'))
-        if pad_mask is not None:
-            scores = scores.masked_fill(~pad_mask.unsqueeze(1).unsqueeze(1), float('-inf'))
         scores = scores.softmax(dim=-1)
-        if pad_mask is not None:
-            scores = scores.masked_fill(~pad_mask.unsqueeze(1).unsqueeze(-1), 0.0)
         o = torch.einsum('bhst, bthd -> bshd', scores, v)
         return o
 
-    def forward(self, h: torch.Tensor, pad_mask: torch.Tensor | None=None):
+    def forward(self, h: torch.Tensor):
         c_KV = self.W_DKV(h)
         k_C = self.W_UK(c_KV)
         k_C = k_C.view(*k_C.shape[:-1], self.num_heads, self.head_dim)
@@ -92,7 +88,7 @@ class MLA(nn.Module):
         q_R = rope(W_QRxc_Q)
         q = torch.cat([q_C, q_R], dim=-1)
 
-        o = self.attention(q, k, v_C, pad_mask)
+        o = self.attention(q, k, v_C)
         o = o.reshape(*o.shape[:-2], -1)
         u = self.W_O(o)
         return u
@@ -110,20 +106,14 @@ if __name__ == '__main__':
 
     # Create a padding mask
     # Assume the last 4 tokens in each sequence are padding
-    pad_mask = torch.ones(batch_size, seq_len, dtype=torch.bool)
-    pad_mask[0, -2:] = False
-    pad_mask[1, -1:] = False
-
-    print(pad_mask)
 
     # Forward pass
-    output = mla(input_tensor, pad_mask=pad_mask)
+    output = mla(input_tensor)
 
     loss = output.sum()
     print(loss)
     loss.backward()
     
     print(f"Input shape: {input_tensor.shape}")
-    print(f"Pad mask shape: {pad_mask.shape}")
     print(f"Output shape: {output.shape}")
     print("Forward pass successful!")

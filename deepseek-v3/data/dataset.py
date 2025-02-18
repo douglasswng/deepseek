@@ -26,7 +26,7 @@ class TextDataset(Dataset):
         if idx in self.cache:
             return self.cache[idx]
         text_chunk = self.chunks[idx]
-        tokens = self.tokeniser.tokenise(text_chunk)
+        tokens = self.tokeniser.tokenise(text_chunk, add_special_tokens=True)
         self.cache[idx] = tokens
         return tokens
 

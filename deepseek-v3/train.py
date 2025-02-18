@@ -37,10 +37,10 @@ def initialise_wandb(num_epochs: int, learning_rate: float):
     })
 
 def train(model: Transformer, batch, optimizer: AdamW, device):
-    input, pad_mask, label = [tensor.to(device) for tensor in batch]
+    input, label = [tensor.to(device) for tensor in batch]
     
     optimizer.zero_grad()
-    output, output_mtp = model(input, pad_mask)
+    output, output_mtp = model(input)
 
     output_flat = output.reshape(-1, output.size(-1))
     output_mtp_flat = output_mtp.reshape(-1, output_mtp.size(-1))
@@ -54,10 +54,10 @@ def train(model: Transformer, batch, optimizer: AdamW, device):
     return loss, loss_mtp
 
 def val(model: Transformer, batch, device):
-    input, pad_mask, label = batch
-    input, pad_mask, label = input.to(device), pad_mask.to(device), label.to(device)
+    input, label = batch
+    input, label = input.to(device), label.to(device)
     with torch.no_grad():
-        output = model(input, pad_mask)
+        output = model(input)
         output_flat = output.reshape(-1, output.size(-1))
         label_flat = label.reshape(-1)
         loss = F.cross_entropy(output_flat, label_flat, ignore_index=0)
@@ -124,7 +124,7 @@ def main():
     warmup_steps = config['model_training']['warmup_steps']
 
     reset(deepseek_v3_ckpt_dir)
-    initialise_wandb(num_epochs, learning_rate)
+    #initialise_wandb(num_epochs, learning_rate)
 
     tokeniser = BBPE.from_pretrained(tokeniser_dir)
     dataset = TextDataset(processed_data_dir, tokeniser)
