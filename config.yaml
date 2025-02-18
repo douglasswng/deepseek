@@ -1,7 +1,7 @@
 raw_data_dir: ./data/raw
 tokeniser_dir: ./artifacts/tokeniser
 processed_data_dir: ./data/processed
-deepseek_v3_ckpt_dir: ./artifcats/deepseek-v3
+deepseek_v3_ckpt_dir: ./artifacts/deepseek-v3
 
 tokeniser_training:
   vocab_size: 10000
