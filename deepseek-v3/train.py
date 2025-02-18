@@ -124,7 +124,7 @@ def main():
     warmup_steps = config['model_training']['warmup_steps']
 
     reset(deepseek_v3_ckpt_dir)
-    #initialise_wandb(num_epochs, learning_rate)
+    initialise_wandb(num_epochs, learning_rate)
 
     tokeniser = BBPE.from_pretrained(tokeniser_dir)
     dataset = TextDataset(processed_data_dir, tokeniser)
