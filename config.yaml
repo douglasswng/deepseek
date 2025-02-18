@@ -10,7 +10,7 @@ tokeniser_training:
 
 model_training:
   max_len: 1024 # max number of tokens
-  batch_size: 16
+  batch_size: 8
   num_epochs: 100
   mtp_weight: 0.2 # weight of the MTP loss
   learning_rate: 0.001
