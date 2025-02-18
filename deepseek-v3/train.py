@@ -8,7 +8,7 @@ import numpy as np
 import wandb
 import torch
 from torch.optim import AdamW
-from torch.optim.lr_scheduler import CosineAnnealingLR
+from torch.optim.lr_scheduler import CosineAnnealingLR, LinearLR
 import torch.nn.functional as F
 from .data.dataset import TextDataset
 from .data.dataloader import create_dataloaders
@@ -72,7 +72,7 @@ def save_ckpt(epoch, model, optimiser, scheduler, train_loss, val_loss, ckpt_dir
         'epoch': epoch,
         'model_state_dict': model.state_dict(),
         'optimizer_state_dict': optimiser.state_dict(),
-        'scheduler_state_dict': scheduler.state_dict() if scheduler else None,
+        'scheduler_state_dict': scheduler.state_dict(),
         'train_loss': train_loss,
         'val_loss': val_loss
     }, ckpt_path)
@@ -118,8 +118,10 @@ def main():
     batch_size = config['model_training']['batch_size']
     num_epochs = config['model_training']['num_epochs']
     learning_rate = config['model_training']['learning_rate']
+    min_learning_rate = config['model_training']['min_learning_rate']
     weight_decay = config['model_training']['weight_decay']
     mtp_weight = config['model_training']['mtp_weight']
+    warmup_steps = config['model_training']['warmup_steps']
 
     reset(deepseek_v3_ckpt_dir)
     initialise_wandb(num_epochs, learning_rate)
@@ -136,11 +138,13 @@ def main():
 
     optimiser = AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
 
-    num_steps = num_epochs * len(train_loader)
-    scheduler = CosineAnnealingLR(optimiser, num_steps)
+    total_steps = num_epochs * len(train_loader)
+    warmup_steps = warmup_steps
+    warmup_scheduler = LinearLR(optimiser, start_factor=0.001, end_factor=1.0, total_iters=warmup_steps)
+    main_scheduler = CosineAnnealingLR(optimiser, T_max=total_steps - warmup_steps, eta_min=min_learning_rate)
 
-    start_epoch = load_latest_ckpt(model, optimiser, scheduler, deepseek_v3_ckpt_dir)
-    step = start_epoch * len(train_loader)
+    start_epoch = load_latest_ckpt(model, optimiser, main_scheduler, deepseek_v3_ckpt_dir)
+    global_step = start_epoch * len(train_loader)
 
     print(f"Starting training from epoch {start_epoch}")
     start_time = time.time()
@@ -154,12 +158,17 @@ def main():
             loss, loss_mtp = train(model, batch, optimiser, device)
             train_loss = loss + mtp_weight * loss_mtp
             train_loss.backward()
-            scheduler.step()
-            step += 1
+            
+            global_step += 1
+            if global_step < warmup_steps:
+                warmup_scheduler.step()
+            else:
+                main_scheduler.step()
+            
             epoch_train_loss += train_loss.item()
 
             wandb.log({
-                'step': step,
+                'step': global_step,
                 'train_loss': train_loss.item()
             })
 
@@ -189,7 +198,7 @@ def main():
         print(f"Estimated time left: {estimated_time_left/3600:.2f} hours")
 
         if epoch % 10 == 0 or epoch == num_epochs - 1:
-            save_ckpt(epoch, model, optimiser, scheduler, avg_train_loss, avg_val_loss, deepseek_v3_ckpt_dir)
+            save_ckpt(epoch, model, optimiser, main_scheduler, avg_train_loss, avg_val_loss, deepseek_v3_ckpt_dir)
             print(f"Checkpoint saved at epoch {epoch+1}")
 
     print("Training completed!")
