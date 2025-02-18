@@ -36,24 +36,21 @@ def initialise_wandb(num_epochs: int, learning_rate: float):
         'learning_rate': learning_rate,
     })
 
-def train(model: Transformer, batch, optimizer: AdamW, device):
+def compute_train_loss(model: Transformer, batch, device):
     input, label = [tensor.to(device) for tensor in batch]
     
-    optimizer.zero_grad()
     output, output_mtp = model(input)
-
     output_flat = output.reshape(-1, output.size(-1))
     output_mtp_flat = output_mtp.reshape(-1, output_mtp.size(-1))
     label_flat = label.reshape(-1)
     label_mtp_flat = label[:, 1:].reshape(-1)
     
-    loss = F.cross_entropy(output_flat, label_flat, ignore_index=0)
+    loss_ntp = F.cross_entropy(output_flat, label_flat, ignore_index=0)
     loss_mtp = F.cross_entropy(output_mtp_flat, label_mtp_flat, ignore_index=0)
-    
-    optimizer.step()
-    return loss, loss_mtp
 
-def val(model: Transformer, batch, device):
+    return loss_ntp, loss_mtp
+
+def compute_val_loss(model: Transformer, batch, device):
     input, label = batch
     input, label = input.to(device), label.to(device)
     with torch.no_grad():
@@ -65,14 +62,14 @@ def val(model: Transformer, batch, device):
 
 def save_ckpt(epoch, model, optimiser, scheduler, train_loss, val_loss, ckpt_dir):
     if not os.path.exists(ckpt_dir):
-        os.mkdir(ckpt_dir)
+        os.makedirs(ckpt_dir, exist_ok=True)
 
     ckpt_path = os.path.join(ckpt_dir, f'epoch_{epoch}_val{val_loss:.4f}.pth')
     torch.save({
         'epoch': epoch,
-        'model_state_dict': model.state_dict(),
-        'optimizer_state_dict': optimiser.state_dict(),
-        'scheduler_state_dict': scheduler.state_dict(),
+        'model': model.state_dict(),
+        'optimiser': optimiser.state_dict(),
+        'scheduler': scheduler.state_dict(),
         'train_loss': train_loss,
         'val_loss': val_loss
     }, ckpt_path)
@@ -90,7 +87,7 @@ def load_latest_ckpt(model, optimiser, scheduler, ckpt_dir):
 
     latest_ckpt = torch.load(latest_ckpt_path, weights_only=True)
     model.load_state_dict(latest_ckpt['model'])
-    optimiser.load_state_dict(latest_ckpt['optimizer'])
+    optimiser.load_state_dict(latest_ckpt['optimiser'])
     scheduler.load_state_dict(latest_ckpt['scheduler'])
 
     return latest_ckpt['epoch']
@@ -149,15 +146,17 @@ def main():
     print(f"Starting training from epoch {start_epoch}")
     start_time = time.time()
 
-    for epoch in tqdm(range(start_epoch, num_epochs), desc="Epochs"):
+    for epoch in tqdm(range(start_epoch, num_epochs), desc="Epochs", leave=False):
         epoch_train_loss = epoch_val_loss = 0
         model.train()
         
         train_pbar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{num_epochs} (Train)", leave=False)
         for batch in train_pbar:
-            loss, loss_mtp = train(model, batch, optimiser, device)
-            train_loss = loss + mtp_weight * loss_mtp
+            optimiser.zero_grad()
+            loss_ntp, loss_mtp = compute_train_loss(model, batch, device)
+            train_loss = loss_ntp + mtp_weight * loss_mtp
             train_loss.backward()
+            optimiser.step()
             
             global_step += 1
             if global_step < warmup_steps:
@@ -169,7 +168,9 @@ def main():
 
             wandb.log({
                 'step': global_step,
-                'train_loss': train_loss.item()
+                'train_loss': train_loss.item(),
+                'loss_ntp': loss_ntp.item(),
+                'loss_mtp': loss_mtp.item()
             })
 
             train_pbar.set_postfix({'loss': f"{train_loss.item():.4f}"})
@@ -177,7 +178,7 @@ def main():
         model.eval()
         val_pbar = tqdm(val_loader, desc=f"Epoch {epoch+1}/{num_epochs} (Val)", leave=False)
         for batch in val_pbar:
-            val_loss = val(model, batch, device)
+            val_loss = compute_val_loss(model, batch, device)
             epoch_val_loss += val_loss.item()
             val_pbar.set_postfix({'loss': f"{val_loss.item():.4f}"})
 
