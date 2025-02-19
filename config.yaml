@@ -10,9 +10,9 @@ tokeniser_dir: ./artifacts/tokeniser
 deepseek_v3_ckpt_dir: ./artifacts/deepseek-v3
 
 tokeniser_training:
-  vocab_size: 30000
+  vocab_size: 50000
   min_frequency: 2 # min num occurences to be added to vocab
-  chunk_size: 100000 # read size when training
+  chunk_size: 50000 # read size when training
 
 model_training:
   max_len: 1024 # max number of tokens

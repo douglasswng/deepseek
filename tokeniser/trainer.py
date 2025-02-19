@@ -74,6 +74,7 @@ class BBPETrainer(BBPE):
             if len(vocab) >= vocab_size:
                 break
             
+            self._update_trie()
             hex_tokens = self.tokenise(text)
 
             while True:

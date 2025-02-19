@@ -145,6 +145,7 @@ if __name__ == '__main__':
     bbpe = BBPE.from_pretrained(tokeniser_dir)
 
     text = """ Early public education in Meridian was based on the 1870 Mississippi Constitution . From 1870 to 1885 , trustees appointed by the City Council served on the Board of School Directors , which had authority to operate the schools . Although there were several schools in the city before 1884 , they were privately owned and only enrolled about 400 students . The city did not build its first publicly owned school until September 1884 . The first public school for blacks in the city was held in facilities rented from St. Paul Methodist Church . The Mississippi Legislature amended the city charter in January 1888 to allow the city to maintain its own municipal school district , and in March of the same year $ 30 @,@ 000 in bonds was approved for the city to build new public schools . From this bond , the Wechsler School was built in 1894 , becoming the first brick public school building in the state built for blacks . """
+    text = " How is your day ?"
     tokens = bbpe.tokenise(text, add_special_tokens=True)
     #print(tokens)
     print(bbpe.from_hex(tokens))
