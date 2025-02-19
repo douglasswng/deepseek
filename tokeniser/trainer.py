@@ -12,6 +12,19 @@ class BBPETrainer(BBPE):
         self.eos_token = special_tokens['eos_token']
         self.all_special_tokens = [self.pad_token, self.bos_token, self.eos_token]
 
+    def apply_merge(self, hex_tokens: list[str], merge: tuple[str, str]) -> list[str]:
+        merged = merge[0] + merge[1]
+        result = []
+        i = 0
+        while i < len(hex_tokens):
+            if i < len(hex_tokens) - 1 and hex_tokens[i] == merge[0] and hex_tokens[i + 1] == merge[1]:
+                result.append(merged)
+                i += 2
+            else:
+                result.append(hex_tokens[i])
+                i += 1
+        return result
+
     def count_pairs(self, hex_tokens: list[str]) -> Counter:
         space_hex = '20'
         whitespace_hex = {'20', '09', '0a', '0d'}  # space, tab, newline, carriage return

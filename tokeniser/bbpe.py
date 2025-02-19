@@ -42,19 +42,6 @@ class BBPE:
 
         self.tokens_trie = root
 
-    def apply_merge(self, hex_tokens: list[str], merge: tuple[str, str]) -> list[str]:
-        merged = merge[0] + merge[1]
-        result = []
-        i = 0
-        while i < len(hex_tokens):
-            if i < len(hex_tokens) - 1 and hex_tokens[i] == merge[0] and hex_tokens[i + 1] == merge[1]:
-                result.append(merged)
-                i += 2
-            else:
-                result.append(hex_tokens[i])
-                i += 1
-        return result
-
     def tokenise(self, text: str, add_special_tokens: bool=False) -> list[str]:
         hex_tokens = [f'{byte:02x}' for byte in text.encode()]
         result = []
