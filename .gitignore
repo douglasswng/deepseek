@@ -5,3 +5,4 @@ __pycache__
 wandb
 __MACOSX__
 /data
+.DS_Store
