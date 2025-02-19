@@ -1,8 +1,8 @@
-.env
-*.ipynb
-artifacts/deepseek-v3
-__pycache__
-wandb
-__MACOSX__
-/data
 .DS_Store
+.env
+__MACOSX__
+__pycache__
+*.ipynb
+/data
+artifacts/deepseek-v3
+wandb
