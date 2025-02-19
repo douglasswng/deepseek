@@ -42,6 +42,6 @@ if __name__ == '__main__':
 
     train_loader, val_loader = create_dataloaders(dataset, tokeniser, batch_size)
 
-    for input, pad_mask, label in val_loader:
+    for input, pad_mask, label in train_loader:
         print(input.shape)
         print(label.shape)

@@ -2,7 +2,7 @@ from typing import Iterator
 import os
 import json
 from collections import Counter
-from bbpe import BBPE
+from .bbpe import BBPE
 
 class BBPETrainer(BBPE):
     def __init__(self,
@@ -12,6 +12,48 @@ class BBPETrainer(BBPE):
         self.eos_token = special_tokens['eos_token']
         self.all_special_tokens = [self.pad_token, self.bos_token, self.eos_token]
 
+    def count_pairs(self, hex_tokens: list[str]) -> Counter:
+        space_hex = '20'
+        whitespace_hex = {'20', '09', '0a', '0d'}  # space, tab, newline, carriage return
+
+        def starts_with_whitespace(token: str) -> bool:
+            return any(token.startswith(w) for w in whitespace_hex)
+        
+        def ends_with_whitespace(token: str) -> bool:
+            return any(token.endswith(w) for w in whitespace_hex)
+
+        def is_valid_merge(token1: str, token2: str) -> bool:
+            # by induction, can assume input tokens are not disallowed tokens
+            if (token1.startswith(space_hex) and  # allow a merged token from starting with a space single space followed by chars
+                not starts_with_whitespace(token2) and
+                not ends_with_whitespace(token2)):
+                return True
+            elif (not starts_with_whitespace(token1) and  # disallow a merged token from starting with a char and ending with a whitespace
+                  ends_with_whitespace(token2)):
+                return False
+            elif (starts_with_whitespace(token1) and  # disallow a merged token from starting with a whitespace and ending with a char
+                  not ends_with_whitespace(token2)):
+                return False
+            elif (not starts_with_whitespace(token1) and  # disallow a merged token from starting and ending with a char and have whitespace in the middle
+                  not ends_with_whitespace(token2) and
+                  starts_with_whitespace(token2)):
+                return False
+            elif (starts_with_whitespace(token1) and  # disallow a merged token from starting and ending with a whitespace and have chars in the middle
+                  ends_with_whitespace(token2) and
+                  not ends_with_whitespace(token1)):
+                return False
+            else:
+                return True
+
+        all_pairs = Counter(zip(hex_tokens, hex_tokens[1:]))
+
+        valid_pairs = {
+            pair: count 
+            for pair, count in all_pairs.items() 
+            if is_valid_merge(*pair)
+        }
+        return Counter(valid_pairs)
+
     def train_from_iterator(self, text_iterator: Iterator[str], vocab_size: int, min_frequency: int):
         vocab = self.all_special_tokens + [f'{i:02x}' for i in range(256)]
         self.merges = []
@@ -19,13 +61,13 @@ class BBPETrainer(BBPE):
             if len(vocab) >= vocab_size:
                 break
             
-            hex_tokens = self._to_hex(self.tokenise(text))
+            hex_tokens = self.tokenise(text)
 
             while True:
                 if len(vocab) >= vocab_size:
                     break
                 
-                counter = Counter(zip(hex_tokens, hex_tokens[1:]))
+                counter = self.count_pairs(hex_tokens)
                 max_count = max(counter.values())
                 if max_count < min_frequency:
                     break
@@ -34,8 +76,10 @@ class BBPETrainer(BBPE):
                 vocab.append(new_token)
                 self.merges.append(merge)
 
-                print(f"  New merge: {merge} -> {new_token} (count: {counter[merge]})")
-                print(f"  Current vocab size: {len(vocab)}")
+                if len(vocab) % 10 == 0:
+                    print(f"  New merge: {merge} -> {new_token} (count: {counter[merge]})")
+                    print(f"  Current vocab size: {len(vocab)}")
+                    print(f"  Current token count: {len(hex_tokens)}")
 
                 hex_tokens = self.apply_merge(hex_tokens, merge)
 
@@ -69,7 +113,7 @@ def get_text_iterator(raw_data_dir: str, chunk_size: int) -> Iterator[str]:
 
 def train_tokeniser(config: dict):
     tokeniser_dir = config['tokeniser_dir']
-    raw_data_dir = config['raw_data_dir']
+    raw_train_data_dir = config['raw_train_data_dir']
     tokeniser_training_config = config['tokeniser_training']
     
     special_tokens_dir = os.path.join(tokeniser_dir, 'special_tokens.json')
@@ -81,7 +125,7 @@ def train_tokeniser(config: dict):
     vocab_size = tokeniser_training_config['vocab_size']
     min_frequency = tokeniser_training_config['min_frequency']
     chunk_size = tokeniser_training_config['chunk_size']
-    text_iterator = get_text_iterator(raw_data_dir, chunk_size)
+    text_iterator = get_text_iterator(raw_train_data_dir, chunk_size)
     trainer.train_from_iterator(text_iterator, vocab_size, min_frequency)
     trainer.save(tokeniser_dir)
 
