@@ -78,6 +78,9 @@ if __name__ == '__main__':
     model = Transformer(ModelArgs())
     model.train()
 
+    total_params = sum(p.numel() for p in model.parameters())
+    print(f"Total number of parameters: {total_params}")
+
     batch_size = 3
     seq_len = 10
     input_ids = torch.randint(1, ModelArgs().vocab_size, (batch_size, seq_len))
@@ -88,8 +91,7 @@ if __name__ == '__main__':
     print(f"Model output mtp shape: {output_mtp.shape}")
     print("Forward pass successful!")
 
-    total_params = sum(p.numel() for p in model.parameters())
-    print(f"Total number of parameters: {total_params}")
+    
 
     with torch.autograd.detect_anomaly():
         loss = output.sum() + output_mtp.sum()
