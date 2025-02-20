@@ -1,6 +1,6 @@
 import os
 import json
-from itertools import groupby, pairwise
+from itertools import groupby
 
 class TrieNode:
     def __init__(self):
@@ -37,8 +37,8 @@ class BBPE:
             root.insert_token(f'{i:02x}')
 
         for merge in self.merges:
-            merged_token = ''.join(merge)
-            root.insert_token(merged_token)
+            token = ''.join(merge)
+            root.insert_token(token)
 
         self.tokens_trie = root
 
@@ -73,24 +73,22 @@ class BBPE:
         return encoded
 
     def decode(self, ids: list[int], skip_special_tokens: bool=False) -> str:
-        tokens = self.convert_ids_to_tokens(ids)
+        hex_tokens = self.convert_ids_to_tokens(ids)
         if skip_special_tokens:
-            tokens = [token for token in tokens if token not in self.all_special_tokens]
-            text = bytes.fromhex(''.join(tokens)).decode()
+            hex_tokens = [hex_token for hex_token in hex_tokens if hex_token not in self.all_special_tokens]
+            text = self.decode_hex(hex_tokens)
         else:
-            groups = groupby(tokens, key=lambda token: token in self.all_special_tokens)
+            groups = groupby(hex_tokens, key=lambda t: t in self.all_special_tokens)
             text = ''
             for is_special, group in groups:
                 if is_special:
                     text += ''.join(group)
                 else:
-                    text += bytes.fromhex(''.join(group)).decode()
+                    text += self.decode_hex(list(group))
         return text
     
-    def convert_tokens_to_ids(self, hex_tokens: list[str], max_len: int | None=None) -> list[int]:
+    def convert_tokens_to_ids(self, hex_tokens: list[str]) -> list[int]:
         ids = [self.vocab[hex_token] for hex_token in hex_tokens]
-        if max_len is not None:
-            ids.extend([self.vocab[self.pad_token]] * (max_len - len(ids)))
         return ids
 
     def convert_ids_to_tokens(self, ids: list[int]) -> list[str]:
@@ -98,20 +96,11 @@ class BBPE:
         hex_tokens = [reverse_vocab[id] for id in ids]
         return hex_tokens
     
-    def to_hex(self, tokens: list[str]) -> list[str]:
-        return [token.encode().hex() if token not in self.all_special_tokens else token for token in tokens]
-    
-    def from_hex(self, hex_tokens: list[str]) -> list[str]:
-        result = []
+    def decode_hex(self, hex_tokens: list[str]) -> str:
+        byte_string = b''
         for hex_token in hex_tokens:
-            try:
-                token = bytes.fromhex(hex_token).decode('utf-8')
-            except UnicodeDecodeError:
-                token = bytes.fromhex(hex_token).decode('iso-8859-1')
-            except ValueError:
-                token = hex_token
-            result.append(token)
-        return result
+            byte_string += bytes.fromhex(hex_token)
+        return byte_string.decode('utf-8', errors='replace')
 
     @classmethod
     def from_pretrained(cls, tokeniser_dir: str) -> 'BBPE':
@@ -144,8 +133,15 @@ if __name__ == '__main__':
     tokeniser_dir = config['tokeniser_dir']
     bbpe = BBPE.from_pretrained(tokeniser_dir)
 
-    text = """ Early public education in Meridian was based on the 1870 Mississippi Constitution . From 1870 to 1885 , trustees appointed by the City Council served on the Board of School Directors , which had authority to operate the schools . Although there were several schools in the city before 1884 , they were privately owned and only enrolled about 400 students . The city did not build its first publicly owned school until September 1884 . The first public school for blacks in the city was held in facilities rented from St. Paul Methodist Church . The Mississippi Legislature amended the city charter in January 1888 to allow the city to maintain its own municipal school district , and in March of the same year $ 30 @,@ 000 in bonds was approved for the city to build new public schools . From this bond , the Wechsler School was built in 1894 , becoming the first brick public school building in the state built for blacks . """
-    text = " How is your day ?"
+    text = "我叫hello"
+    encoded = bbpe.encode(text)
+    print(len(encoded))
+    decoded = bbpe.decode(encoded)
+    print(decoded)
+    encoded = bbpe.encode(decoded)
+    print(len(encoded))
+    raise
+
     tokens = bbpe.tokenise(text, add_special_tokens=True)
     #print(tokens)
     print(bbpe.from_hex(tokens))

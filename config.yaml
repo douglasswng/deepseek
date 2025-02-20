@@ -1,10 +1,6 @@
-raw_train_data_dir: ./data/raw/train
-raw_val_data_dir: ./data/raw/val
-raw_test_data_dir: ./data/raw/test
-
-processed_train_data_dir: ./data/processed/train
-processed_val_data_dir: ./data/processed/val
-processed_test_data_dir: ./data/processed/test
+train_data_dir: ./data/raw/train
+val_data_dir: ./data/raw/val
+test_data_dir: ./data/raw/test
 
 tokeniser_dir: ./artifacts/tokeniser
 deepseek_v3_ckpt_dir: ./artifacts/deepseek-v3

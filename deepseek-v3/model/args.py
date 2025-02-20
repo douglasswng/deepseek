@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 @dataclass()
 class ModelArgs:
-    vocab_size: int = 10000
+    vocab_size: int = 50000
     num_layers: int = 16
 
     hidden_dim: int = 512
