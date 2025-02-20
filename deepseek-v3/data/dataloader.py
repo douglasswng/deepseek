@@ -20,19 +20,14 @@ def create_dataloader(dataset: TextDataset, tokeniser: BBPE, batch_size: int) ->
 
 if __name__ == '__main__':
     from tokeniser.bbpe import BBPE
+    from utils.config import Config
 
-    import yaml
-    with open('./config.yaml', 'r') as f:
-        config = yaml.safe_load(f)
+    config = Config()
 
-    val_data_dir = config['val_data_dir']
-    tokeniser_dir = config['tokeniser_dir']
-    batch_size = config['model_training']['batch_size']
+    tokeniser = BBPE.from_pretrained(config.tokeniser_dir)
+    dataset = TextDataset(config.val_data_dir, tokeniser, 1024, 512)
 
-    tokeniser = BBPE.from_pretrained(tokeniser_dir)
-    dataset = TextDataset(val_data_dir, tokeniser, 1024, 512)
-
-    val_loader = create_dataloader(dataset, tokeniser, batch_size)
+    val_loader = create_dataloader(dataset, tokeniser, config.batch_size)
 
     for input, label in val_loader:
         print(input.shape)

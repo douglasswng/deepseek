@@ -5,12 +5,13 @@ from torch.optim.lr_scheduler import LinearLR, CosineAnnealingLR
 import torch.nn.functional as F
 from tqdm import tqdm
 import wandb
-from ..data.dataset import TextDataset
-from ..data.dataloader import create_dataloader
+from .data.dataset import TextDataset
+from .data.dataloader import create_dataloader
+from .model.transformer import Transformer
+from .model.args import ModelArgs
 from tokeniser.bbpe import BBPE
-from ..model.transformer import Transformer
-from ..model.args import ModelArgs
-from ..train.utils import set_random_seed, initialise_wandb, load_latest_ckpt, reset_ckpt, save_ckpt, ConfigManager
+from utils.train import set_random_seed, initialise_wandb, load_latest_ckpt, reset_ckpt, save_ckpt
+from utils.config import Config
 
 def load_model(args: ModelArgs, device) -> Transformer:
     model = Transformer(args)
@@ -36,7 +37,7 @@ def train_step(model: Transformer,
                batch,
                global_step,
                device,
-               config: ConfigManager) -> float:
+               config: Config) -> float:
     input, label = batch
     input, label = input.to(device), label.to(device)
 
@@ -97,7 +98,7 @@ def val_epoch(model: Transformer, val_loader, epoch, device) -> float:
     log_val_epoch(epoch, avg_loss)
     return avg_loss
 
-def train(model, optimiser, warmup_scheduler, main_scheduler, train_loader, val_loader, start_epoch, device, config: ConfigManager):
+def train(model, optimiser, warmup_scheduler, main_scheduler, train_loader, val_loader, start_epoch, device, config: Config):
     start_time = time.time()
     print(f"Starting training from epoch {start_epoch}")
 
@@ -119,7 +120,7 @@ def train(model, optimiser, warmup_scheduler, main_scheduler, train_loader, val_
     print("Training completed!")
 
 def main(config_path: str):
-    config = ConfigManager(config_path)
+    config = Config(config_path)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     reset_ckpt(config.deepseek_v3_ckpt_dir)

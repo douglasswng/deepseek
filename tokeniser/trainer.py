@@ -3,6 +3,7 @@ import os
 import json
 from collections import Counter
 from .bbpe import BBPE
+from utils.config import Config
 
 class BBPETrainer(BBPE):
     def __init__(self,
@@ -73,6 +74,7 @@ class BBPETrainer(BBPE):
             if len(vocab) >= vocab_size:
                 break
             
+            self.vocab = {token: i for i, token in enumerate(vocab)}
             self._update_trie()
             hex_tokens = self.tokenise(text)
 
@@ -97,8 +99,6 @@ class BBPETrainer(BBPE):
 
         print("Training completed.")
         print(f"Final vocab size: {len(vocab)}")
-                
-        self.vocab = {token: i for i, token in enumerate(vocab)}
 
     def save(self, tokeniser_dir: str):
         vocab_path = os.path.join(tokeniser_dir, 'vocab.json')
@@ -117,27 +117,18 @@ def get_text_iterator(raw_data_dir: str, chunk_size: int) -> Iterator[str]:
                         break
                     yield chunk
 
-def train_tokeniser(config: dict):
-    tokeniser_dir = config['tokeniser_dir']
-    raw_train_data_dir = config['raw_train_data_dir']
-    tokeniser_training_config = config['tokeniser_training']
-    
-    special_tokens_dir = os.path.join(tokeniser_dir, 'special_tokens.json')
-    with open(special_tokens_dir, 'r') as f:
+def train_tokeniser(config: Config):
+    special_tokens_path = os.path.join(config.tokeniser_dir, 'special_tokens.json')
+    with open(special_tokens_path, 'r') as f:
         special_tokens = json.load(f)
 
     trainer = BBPETrainer(special_tokens)
 
-    vocab_size = tokeniser_training_config['vocab_size']
-    min_frequency = tokeniser_training_config['min_frequency']
-    chunk_size = tokeniser_training_config['chunk_size']
-    text_iterator = get_text_iterator(raw_train_data_dir, chunk_size)
-    trainer.train_from_iterator(text_iterator, vocab_size, min_frequency)
-    trainer.save(tokeniser_dir)
+    text_iterator = get_text_iterator(config.train_data_dir, config.chunk_size)
+    trainer.train_from_iterator(text_iterator, config.vocab_size, config.min_frequency)
+    trainer.save(config.tokeniser_dir)
 
 if __name__ == '__main__':
-    import yaml
-    with open('./config.yaml', 'r') as f:
-        config = yaml.safe_load(f)
-
+    from utils.config import Config
+    config = Config()
     train_tokeniser(config)

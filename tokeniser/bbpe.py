@@ -113,29 +113,13 @@ class BBPE:
         return bbpe
     
 if __name__ == '__main__':
-    import yaml
-    with open('./config.yaml', 'r') as f:
-        config = yaml.safe_load(f)
-
-    tokeniser_dir = config['tokeniser_dir']
-    bbpe = BBPE.from_pretrained(tokeniser_dir)
+    from utils.config import Config
+    config = Config()
+    tokeniser = BBPE.from_pretrained(config.tokeniser_dir)
 
     text = "我叫hello"
-    encoded = bbpe.encode(text)
-    print(len(encoded))
-    decoded = bbpe.decode(encoded)
+    encoded = tokeniser.encode(text)
+    decoded = tokeniser.decode(encoded)
+
+    print(encoded)
     print(decoded)
-    encoded = bbpe.encode(decoded)
-    print(len(encoded))
-    raise
-
-    tokens = bbpe.tokenise(text, add_special_tokens=True)
-    #print(tokens)
-    print(bbpe.from_hex(tokens))
-    #print(bbpe.convert_tokens_to_ids(tokens))
-
-    encoded = bbpe.encode(text)
-    decoded = bbpe.decode(encoded)
-    
-    #print(encoded)
-    #print(decoded)

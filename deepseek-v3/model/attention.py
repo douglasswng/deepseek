@@ -94,26 +94,14 @@ class MLA(nn.Module):
         return u
 
 if __name__ == '__main__':
-    import torch
-
     mla = MLA(ModelArgs())
 
-    # Create a random input tensor
     batch_size = 3
     seq_len = 21
     embed_dim = 512
     input_tensor = torch.randn(batch_size, seq_len, embed_dim)
 
-    # Create a padding mask
-    # Assume the last 4 tokens in each sequence are padding
-
-    # Forward pass
     output = mla(input_tensor)
 
     loss = output.sum()
-    print(loss)
     loss.backward()
-    
-    print(f"Input shape: {input_tensor.shape}")
-    print(f"Output shape: {output.shape}")
-    print("Forward pass successful!")

@@ -75,33 +75,22 @@ class Transformer(nn.Module):
             return x
     
 if __name__ == '__main__':
-    import torch
-    torch.autograd.set_detect_anomaly(True)
-
-    # Set up the model arguments
-    args = ModelArgs()
-
-    # Instantiate the model
-    model = Transformer(args)
+    model = Transformer(ModelArgs())
     model.train()
 
-    # Create a sample input
     batch_size = 3
     seq_len = 10
-    input_ids = torch.randint(1, args.vocab_size, (batch_size, seq_len))
+    input_ids = torch.randint(1, ModelArgs().vocab_size, (batch_size, seq_len))
 
-    # Forward pass
     output, output_mtp = model(input_ids)
     print(output)
     print(f"Model output shape: {output.shape}")
     print(f"Model output mtp shape: {output_mtp.shape}")
     print("Forward pass successful!")
 
-    # Check model parameters
     total_params = sum(p.numel() for p in model.parameters())
     print(f"Total number of parameters: {total_params}")
 
-    # Test gradient computation
     with torch.autograd.detect_anomaly():
         loss = output.sum() + output_mtp.sum()
         loss.backward()

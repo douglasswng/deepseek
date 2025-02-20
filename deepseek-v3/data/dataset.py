@@ -67,14 +67,11 @@ class TextDataset(Dataset):
         return self.chunks[idx]
 
 if __name__ == '__main__':
-    import yaml
-    with open('./config.yaml', 'r') as f:
-        config = yaml.safe_load(f)
+    from utils.config import Config
+    
+    config = Config()
 
-    val_data_dir = config['val_data_dir']
-    tokeniser_dir = config['tokeniser_dir']
-
-    tokeniser = BBPE.from_pretrained(tokeniser_dir)
-    dataset = TextDataset(val_data_dir, tokeniser, 1024, 512)
+    tokeniser = BBPE.from_pretrained(config.tokeniser_dir)
+    dataset = TextDataset(config.val_data_dir, tokeniser, config.max_len, config.stride)
 
     print(dataset[0])
