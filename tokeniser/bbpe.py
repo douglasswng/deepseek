@@ -18,11 +18,9 @@ class TrieNode:
 class BBPE:
     def __init__(self,
                  vocab: dict[str, int],
-                 merges: list[tuple[str, str]],
                  special_tokens: dict[str, str],
                  ):
         self.vocab = vocab
-        self.merges = merges
         self.pad_token = special_tokens['pad_token']
         self.bos_token = special_tokens['bos_token']
         self.eos_token = special_tokens['eos_token']
@@ -33,13 +31,11 @@ class BBPE:
     def _update_trie(self):
         root = TrieNode()
 
-        for i in range(256):
-            root.insert_token(f'{i:02x}')
-
-        for merge in self.merges:
-            token = ''.join(merge)
+        for token in self.vocab:
+            if token in self.all_special_tokens:
+                continue
             root.insert_token(token)
-
+        
         self.tokens_trie = root
 
     def tokenise(self, text: str, add_special_tokens: bool=False) -> list[str]:
@@ -106,7 +102,6 @@ class BBPE:
     def from_pretrained(cls, tokeniser_dir: str) -> 'BBPE':
         special_tokens_path = os.path.join(tokeniser_dir, 'special_tokens.json')
         vocab_path = os.path.join(tokeniser_dir, 'vocab.json')
-        merges_path = os.path.join(tokeniser_dir, 'merges.txt')
 
         with open(special_tokens_path, 'r') as f:
             special_tokens = json.load(f)
@@ -114,15 +109,7 @@ class BBPE:
         with open(vocab_path, 'r') as f:
             vocab = json.load(f)
 
-        with open(merges_path, 'r') as f:
-            lines = f.readlines()
-
-        merges = []
-        for line in lines:
-            merge = tuple(line.split())
-            merges.append((merge[0], merge[1]))
-
-        bbpe = BBPE(vocab, merges, special_tokens)
+        bbpe = BBPE(vocab, special_tokens)
         return bbpe
     
 if __name__ == '__main__':

@@ -69,7 +69,6 @@ class BBPETrainer(BBPE):
 
     def train_from_iterator(self, text_iterator: Iterator[str], vocab_size: int, min_frequency: int):
         vocab = self.all_special_tokens + [f'{i:02x}' for i in range(256)]
-        self.merges = []
         for text in text_iterator:
             if len(vocab) >= vocab_size:
                 break
@@ -88,7 +87,6 @@ class BBPETrainer(BBPE):
                 merge = counter.most_common(1)[0][0]
                 new_token = merge[0] + merge[1]
                 vocab.append(new_token)
-                self.merges.append(merge)
 
                 if len(vocab) % 10 == 0:
                     print(f"  New merge: {merge} -> {new_token} (count: {counter[merge]})")
@@ -99,20 +97,14 @@ class BBPETrainer(BBPE):
 
         print("Training completed.")
         print(f"Final vocab size: {len(vocab)}")
-        print(f"Number of merges: {len(self.merges)}")
                 
         self.vocab = {token: i for i, token in enumerate(vocab)}
 
     def save(self, tokeniser_dir: str):
         vocab_path = os.path.join(tokeniser_dir, 'vocab.json')
-        merges_path = os.path.join(tokeniser_dir, 'merges.txt')
 
         with open(vocab_path, 'w') as f:
             json.dump(self.vocab, f, indent=4)
-
-        with open(merges_path, 'w') as f:
-            for merge in self.merges:
-                f.write(f"{merge[0]} {merge[1]}\n")
 
 def get_text_iterator(raw_data_dir: str, chunk_size: int) -> Iterator[str]:
     for filename in os.listdir(raw_data_dir):
