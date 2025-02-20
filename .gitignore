@@ -3,6 +3,5 @@
 __MACOSX__
 __pycache__
 *.ipynb
-/data
 artifacts/deepseek-v3
 wandb
